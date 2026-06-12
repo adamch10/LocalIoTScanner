@@ -1,0 +1,9 @@
+<Solution>
+  <Configurations>
+    <BuildType Name="Debug" />
+    <BuildType Name="Release" />
+    <BuildType Name="Run" />
+  </Configurations>
+  <Project Path="LocalIotScanner.Core/LocalIotScanner.Core.csproj" />
+  <Project Path="LocalIotScanner.Web/LocalIotScanner.Web.csproj" />
+</Solution>
