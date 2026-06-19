@@ -5,6 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <Configurations>Debug;Release;Run</Configurations>
+	  <NoWarn>$(NoWarn);NU1903;NU1603</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
