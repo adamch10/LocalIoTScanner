@@ -16,6 +16,8 @@ builder.Services.AddDbContext<ScannerDbContext>(options =>
 builder.Services.AddTransient<IHostDiscovery, HostDiscovery>();
 builder.Services.AddTransient<IPortScanner, PortScanner>();
 builder.Services.AddTransient<IVulnerabilityChecker, VulnerabilityChecker>();
+builder.Services.AddScoped<LocalIotScanner.Web.Services.TranslationService>();
+builder.Services.AddHttpClient();
 
 builder.Services.AddScoped<IAuditOrchestratorService, AuditOrchestratorService>();
 

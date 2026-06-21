@@ -1,23 +1,54 @@
-﻿<div class="bg-dark text-white vh-100 p-3 shadow" style="width: 250px; position: fixed; top: 0; left: 0;">
+﻿@using LocalIotScanner.Web.Services
+@inject TranslationService T
+@implements IDisposable
+@rendermode InteractiveServer
+
+<div class="bg-dark text-white vh-100 p-3 shadow d-flex flex-column" style="width: 250px; position: fixed; top: 0; left: 0;">
+
     <a class="d-flex align-items-center mb-4 text-white text-decoration-none" href="">
         <i class="bi bi-shield-lock text-success me-3 fs-3"></i>
         <span class="fs-4 fw-bold">IoT Scanner</span>
     </a>
-    
+
     <hr class="text-secondary" />
 
     <ul class="nav nav-pills flex-column mb-auto mt-3">
         <li class="nav-item mb-2">
             <NavLink class="nav-link text-white d-flex align-items-center" href="" Match="NavLinkMatch.All">
-                <i class="bi bi-speedometer2 me-3 fs-5"></i> 
-                <span>Dashboard</span>
+                <i class="bi bi-speedometer2 me-3 fs-5"></i>
+                <span>@T["Nav_Dashboard"]</span>
             </NavLink>
         </li>
         <li class="nav-item">
             <NavLink class="nav-link text-white d-flex align-items-center" href="history">
-                <i class="bi bi-clock-history me-3 fs-5"></i> 
-                <span>Audit History</span>
+                <i class="bi bi-clock-history me-3 fs-5"></i>
+                <span>@T["Nav_History"]</span>
             </NavLink>
         </li>
     </ul>
+
+    <div class="mt-auto mb-2">
+        <hr class="text-secondary" />
+        <div class="btn-group w-100 shadow-sm" role="group">
+            <input type="radio" class="btn-check" name="lang" id="langEn" checked="@(T.CurrentLanguage == "en")" @onchange="@(() => T.SetLanguage("en"))">
+            <label class="btn btn-outline-secondary btn-sm text-white" for="langEn">English</label>
+
+            <input type="radio" class="btn-check" name="lang" id="langPl" checked="@(T.CurrentLanguage == "pl")" @onchange="@(() => T.SetLanguage("pl"))">
+            <label class="btn btn-outline-secondary btn-sm text-white" for="langPl">Polski</label>
+        </div>
+    </div>
 </div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        // Subscribe to the event so the menu updates instantly when clicked
+        T.OnLanguageChanged += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        // Always unsubscribe to prevent memory leaks!
+        T.OnLanguageChanged -= StateHasChanged;
+    }
+}

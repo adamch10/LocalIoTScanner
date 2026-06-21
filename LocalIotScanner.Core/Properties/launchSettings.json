@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "LocalIotScanner.Core": {
+      "commandName": "Project",
+      "debugEngines": "managed"
+    }
+  }
+}

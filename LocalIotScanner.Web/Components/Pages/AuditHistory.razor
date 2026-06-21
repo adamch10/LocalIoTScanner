@@ -2,22 +2,25 @@
 @rendermode InteractiveServer
 @using Microsoft.EntityFrameworkCore
 @using LocalIotScanner.Core.Models
+@using LocalIotScanner.Web.Services
 @inject ScannerDbContext DbContext
+@inject TranslationService T
+@implements IDisposable
 
 <div class="container mt-4">
-    <h2><i class="bi bi-clock-history"></i> Audit History</h2>
-    <p class="text-muted">Review previous network security scans and findings.</p>
+    <h2><i class="bi bi-clock-history"></i> @T["Hist_Title"]</h2>
+    <p class="text-muted">@T["Hist_Subtitle"]</p>
 
     @if (isLoading)
     {
         <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Loading...</span>
+            <span class="visually-hidden">@T["Hist_Loading"]</span>
         </div>
     }
     else if (!auditSessions.Any())
     {
         <div class="alert alert-info">
-            No audit history found. Run a scan from the dashboard to see results here!
+            @T["Hist_NoData"]
         </div>
     }
     else
@@ -25,7 +28,6 @@
         <div class="accordion" id="auditHistoryAccordion">
             @foreach (var session in auditSessions)
             {
-                // Sprawdzamy stan dla konkretnej sesji w C#
                 bool isExpanded = expandedSessions.Contains(session.Id);
                 string buttonClass = isExpanded ? "accordion-button" : "accordion-button collapsed";
                 string contentClass = isExpanded ? "accordion-collapse collapse show" : "accordion-collapse collapse";
@@ -35,22 +37,22 @@
                         <button class="@buttonClass" type="button" @onclick="() => ToggleSession(session.Id)">
                             <div class="d-flex justify-content-between w-100 pe-3 align-items-center">
                                 <span>
-                                    <strong>@session.Timestamp.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</strong> 
+                                    <strong>@session.Timestamp.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</strong>
                                     <span class="text-muted ms-2">(@session.Subnet)</span>
                                 </span>
                                 <span>
-                                    Hosts: <span class="badge bg-secondary me-3">@session.TotalHostsFound</span>
-                                    Risk: @GetRiskBadge(session.OverallRiskScore)
+                                    @T["Hist_Hosts"]: <span class="badge bg-secondary me-3">@session.TotalHostsFound</span>
+                                    @T["Dash_OverallRisk"]: @GetRiskBadge(session.OverallRiskScore)
                                 </span>
                             </div>
                         </button>
                     </h2>
-                    
+
                     <div class="@contentClass">
                         <div class="accordion-body bg-light">
                             @if (!session.Devices.Any())
                             {
-                                <p class="text-muted mb-0">No devices were found during this scan.</p>
+                                <p class="text-muted mb-0">@T["Hist_NoDevices"]</p>
                             }
                             else
                             {
@@ -58,10 +60,10 @@
                                     <table class="table table-sm table-bordered bg-white mb-0">
                                         <thead class="table-light">
                                             <tr>
-                                                <th>IP Address</th>
-                                                <th>Device Type</th>
-                                                <th>Open Ports & Services</th>
-                                                <th>Detected Vulnerabilities</th>
+                                                <th>@T["Hist_ColIP"]</th>
+                                                <th>@T["Hist_ColType"]</th>
+                                                <th>@T["Hist_ColPorts"]</th>
+                                                <th>@T["Hist_ColVulns"]</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -81,14 +83,14 @@
                                                             var vulns = device.ScannedPorts.SelectMany(p => p.Vulnerabilities).ToList();
                                                             if (!vulns.Any())
                                                             {
-                                                                <span class="text-success"><i class="bi bi-shield-check"></i> Clean</span>
+                                                                <span class="text-success"><i class="bi bi-shield-check"></i> @T["Dash_Secure"]</span>
                                                             }
                                                             else
                                                             {
                                                                 <ul class="mb-0 ps-3">
                                                                     @foreach (var v in vulns)
                                                                     {
-                                                                        <li class="text-danger small"><strong>@v.Title</strong> (@v.SeverityLevel)</li>
+                                                                        <li class="text-danger small"><strong>@T[v.Title]</strong> (@T[v.SeverityLevel])</li>
                                                                     }
                                                                 </ul>
                                                             }
@@ -111,12 +113,12 @@
 @code {
     private List<AuditSession> auditSessions = new();
     private bool isLoading = true;
-    
-    // Zbiór przechowujący ID sesji, które są obecnie rozwinięte
     private HashSet<int> expandedSessions = new();
 
     protected override async Task OnInitializedAsync()
     {
+        T.OnLanguageChanged += StateHasChanged;
+
         auditSessions = await DbContext.AuditSessions
             .Include(s => s.Devices)
                 .ThenInclude(d => d.ScannedPorts)
@@ -127,7 +129,11 @@
         isLoading = false;
     }
 
-    // Metoda przełączająca stan rozwinięcia
+    public void Dispose()
+    {
+        T.OnLanguageChanged -= StateHasChanged;
+    }
+
     private void ToggleSession(int sessionId)
     {
         if (expandedSessions.Contains(sessionId))
@@ -150,6 +156,7 @@
             _ => "bg-secondary"
         };
 
-        <span class="badge @badgeClass">@riskScore</span>
+        // Tłumaczenie etykiety wewnątrz odznaki
+        <span class="badge @badgeClass">@T[riskScore]</span>
     };
 }

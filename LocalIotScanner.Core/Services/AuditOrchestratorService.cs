@@ -31,13 +31,14 @@ namespace LocalIotScanner.Core.Services
 
         public async Task<AuditSession> RunFullAuditAsync(string subnet, IEnumerable<int> targetPorts, CancellationToken token = default, IProgress<ScanProgress> progress = null)
         {
+            // Konsola: Pełny angielski log ze zmiennymi
             _logger.LogInformation("Starting audit on subnet: {Subnet}", subnet);
 
             // --- RAPORT: Inicjalizacja (5%) ---
             progress?.Report(new ScanProgress
             {
                 ProgressPercentage = 5,
-                StatusMessage = "Initializing scan session...",
+                StatusMessage = "Status_Init", // Klucz słownika
                 DevicesDiscovered = 0
             });
 
@@ -53,7 +54,7 @@ namespace LocalIotScanner.Core.Services
             progress?.Report(new ScanProgress
             {
                 ProgressPercentage = 10,
-                StatusMessage = $"Running ICMP discovery on {subnet}...",
+                StatusMessage = "Status_ICMP", // Klucz słownika
                 DevicesDiscovered = 0
             });
 
@@ -62,13 +63,14 @@ namespace LocalIotScanner.Core.Services
             var deviceList = activeDevices.ToList();
             session.TotalHostsFound = deviceList.Count;
 
+            // Konsola: Pełny angielski log
             _logger.LogInformation("Discovered {Count} active devices.", session.TotalHostsFound);
 
             // --- RAPORT: Zakończenie mapowania, przejście do skanowania (20%) ---
             progress?.Report(new ScanProgress
             {
                 ProgressPercentage = 20,
-                StatusMessage = $"Discovered {session.TotalHostsFound} devices. Starting port scans...",
+                StatusMessage = "Status_PortScan", // Klucz słownika
                 DevicesDiscovered = session.TotalHostsFound
             });
 
@@ -76,39 +78,35 @@ namespace LocalIotScanner.Core.Services
             int completedDevices = 0;
             int totalDevices = deviceList.Count;
 
-            // Tworzymy zadania z wbudowanym raportowaniem postępu po zakończeniu każdego z nich
             var deviceTasks = deviceList.Select(async device =>
             {
-                // Uruchomienie skanowania dla konkretnego urządzenia
                 var processedDevice = await ProcessDeviceAsync(device, targetPorts, token);
 
-                // Zabezpieczenie przed błędami współbieżności - bezpieczna inkrementacja licznika
                 int currentCompleted = Interlocked.Increment(ref completedDevices);
-
-                // Skalowanie postępu w zakresie od 20% do 90%
                 int progressPercent = totalDevices == 0 ? 90 : 20 + (int)((currentCompleted / (double)totalDevices) * 70);
 
                 // --- RAPORT: Aktualizacja po każdym przeskanowanym urządzeniu ---
                 progress?.Report(new ScanProgress
                 {
                     ProgressPercentage = progressPercent,
-                    StatusMessage = $"Scanned {currentCompleted} of {totalDevices} devices...",
+                    StatusMessage = "Status_Scanning", // Klucz słownika
                     DevicesDiscovered = totalDevices
                 });
+
+                // Konsola: Opcjonalny log postępu po angielsku
+                _logger.LogDebug("Scanned {Current} of {Total} devices...", currentCompleted, totalDevices);
 
                 return processedDevice;
             });
 
             var processedDevices = await Task.WhenAll(deviceTasks);
-
-            // Attach processed devices to the session
             session.Devices = processedDevices.ToList();
 
             // --- RAPORT: Obliczanie ryzyka (90%) ---
             progress?.Report(new ScanProgress
             {
                 ProgressPercentage = 90,
-                StatusMessage = "Calculating overall network risk...",
+                StatusMessage = "Status_Risk", // Klucz słownika
                 DevicesDiscovered = totalDevices
             });
 
@@ -119,7 +117,7 @@ namespace LocalIotScanner.Core.Services
             progress?.Report(new ScanProgress
             {
                 ProgressPercentage = 95,
-                StatusMessage = "Saving audit results to local database...",
+                StatusMessage = "Status_Saving", // Klucz słownika
                 DevicesDiscovered = totalDevices
             });
 
@@ -130,7 +128,6 @@ namespace LocalIotScanner.Core.Services
 
             _logger.LogInformation("Audit complete. Final Risk Score: {Score}", session.OverallRiskScore);
 
-            // Sumowanie wykrytych podatności dla finalnego raportu (opcjonalne, jeśli ScanProgress to obsługuje)
             int totalVulnerabilities = session.Devices
                 .SelectMany(d => d.ScannedPorts)
                 .SelectMany(p => p.Vulnerabilities)
@@ -140,9 +137,9 @@ namespace LocalIotScanner.Core.Services
             progress?.Report(new ScanProgress
             {
                 ProgressPercentage = 100,
-                StatusMessage = "Audit completed successfully.",
+                StatusMessage = "Status_Done", // Klucz słownika (został już dodany w poprzednim kroku)
                 DevicesDiscovered = totalDevices,
-                VulnerabilitiesFound = totalVulnerabilities // Jeśli model ScanProgress zawiera tę właściwość
+                VulnerabilitiesFound = totalVulnerabilities
             });
 
             return session;
